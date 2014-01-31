@@ -2,47 +2,35 @@ package com.lunatech.urldecode
 
 import java.nio.charset.Charset
 import java.lang.IllegalArgumentException
+import scala.io.Codec
 
 object Decoder {
 
-  val charset = Charset.forName("UTF-8")
+  val splitAtPercentRE = "^[^%]+|%[^%]*".r
+  def partinitionByPercent(s: String) = splitAtPercentRE.findAllIn(s)
 
   /**
-   * Decode %-Hexadecimal encoded characters from a given string
-   *
-   * Input:  String
-   * Output: String
+   * URL decode percent-encoding
+   * @param str percent-encoded String
+   * @return Decoded String value
    */
   def decode(str: String): String = {
-    val encoded = str.toCharArray()
-    val decoded = new Array[Byte](encoded.length)
-    var i = 0
-    var j: Int = 0
-
-    for (x <- 0 until encoded.length) {
-      if (x == i) {
-        if (encoded(i) == '%') {
-          if (i + 2 >= encoded.length)
-            throw new IllegalArgumentException("Incomplete trailing escape (%) pattern " + i);
-          else {
-            val value = fromHexToInt((encoded(i + 1) +: Array[Char]() :+ encoded(i + 2)) mkString "")
-            decoded(j) = value.toByte
-            i = i + 3
-          }
-
-        } else {
-          decoded(j) = encoded(i).toByte
-          i = i + 1
-        }
-        j = j + 1
-      }
+    val partitionedStrings = partinitionByPercent(str).toSeq
+    val byteSeqs = partitionedStrings.map { s =>
+      if (s.startsWith("%"))
+        if (s.length < 3)
+          throw new IllegalArgumentException("% not followed by 2 characters")
+        else
+          hexToByte(s.substring(1,3)) +: s.substring(3).getBytes(Codec.UTF8.charSet)
+      else
+        s.getBytes(Codec.UTF8.charSet)
     }
-    new String(decoded, 0, j, charset)
+    new String(byteSeqs.flatten.toArray, Codec.UTF8.charSet)
   }
 
-  def fromHexToInt(c: String): Int = {
+  def hexToByte(s: String): Byte = {
     try {
-      Integer.parseInt(c, 16)
+      Integer.parseInt(s, 16).toByte
     } catch {
       case e: Exception => throw new IllegalArgumentException("Illegal hex characters");
     }
