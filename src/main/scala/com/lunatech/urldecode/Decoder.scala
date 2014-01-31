@@ -7,7 +7,7 @@ import scala.io.Codec
 object Decoder {
 
   val splitAtPercentRE = "^[^%]+|%[^%]*".r
-  def partinitionByPercent(s: String) = splitAtPercentRE.findAllIn(s)
+  def partitionByPercent(s: String) = splitAtPercentRE.findAllIn(s)
 
   /**
    * URL decode percent-encoding
@@ -15,7 +15,7 @@ object Decoder {
    * @return Decoded String value
    */
   def decode(str: String): String = {
-    val partitionedStrings = partinitionByPercent(str).toSeq
+    val partitionedStrings = partitionByPercent(str).toSeq
     val byteSeqs = partitionedStrings.map { s =>
       if (s.startsWith("%"))
         if (s.length < 3)
